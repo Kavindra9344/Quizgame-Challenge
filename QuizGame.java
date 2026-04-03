@@ -1,7 +1,6 @@
 import java.util.Scanner;
-
+import java.util.concurrent.atomic.AtomicBoolean;
 public class QuizGame {
-
     static String[] questions = {
         "What is the full form of Java?",
         "Which keyword is used to create a class in Java?",
@@ -17,33 +16,59 @@ public class QuizGame {
         {"A. Object Oriented Programming", "B. Out Of Place", "C. Oriented Object Process", "D. Online Object Programming"}
     };
     static String[] answers = {"C", "B", "C", "D", "A"};
-    public static void main(String[] args) {
+    static Thread timerThread(AtomicBoolean answered) {
+        return new Thread(() -> {
+            for (int i = 10; i >= 1; i--) {
+                if (answered.get()) return;
+                System.out.println("  ⏱ Time left: " + i + " seconds");
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    return;
+                }
+            }
+            if (!answered.get()) {
+                System.out.println("\n  ⌛ Time is up! Moving to next question...");
+                answered.set(true);
+            }
+        });
+    }
+    public static void main(String[] args) throws InterruptedException {
         Scanner scanner = new Scanner(System.in);
         int score = 0;
-
         System.out.println("==============================");
         System.out.println("      Welcome to Quiz Game    ");
+        System.out.println("   You have 10 sec per question");
         System.out.println("==============================\n");
-
         for (int i = 0; i < questions.length; i++) {
             System.out.println("Q" + (i + 1) + ": " + questions[i]);
             for (int j = 0; j < options[i].length; j++) {
                 System.out.println("  " + options[i][j]);
             }
             System.out.print("Your answer (A/B/C/D): ");
+            AtomicBoolean answered = new AtomicBoolean(false);
+            Thread timer = timerThread(answered);
+            timer.setDaemon(true);
+            timer.start();
             String userAnswer = scanner.nextLine().toUpperCase().trim();
-
+            answered.set(true);
+            timer.interrupt();
+            if (userAnswer.isEmpty()) {
+                System.out.println("✘ No answer! Correct answer is: " + answers[i] + "\n");
+                continue;
+            }
             if (userAnswer.equals(answers[i])) {
                 System.out.println("✔ Correct!\n");
                 score++;
             } else {
                 System.out.println("✘ Wrong! Correct answer is: " + answers[i] + "\n");
             }
+            Thread.sleep(500);
         }
         System.out.println("==============================");
         System.out.println("Quiz Finished!");
         System.out.println("Your Score: " + score + " / " + questions.length);
-        if (score == questions.length) {
+        if (score==questions.length) {
             System.out.println("Result: Excellent! Perfect Score! 🎉");
         } else if (score >= 3) {
             System.out.println("Result: Good Job! Keep it up! 👍");
@@ -51,6 +76,6 @@ public class QuizGame {
             System.out.println("Result: Keep Practicing! 💪");
         }
         System.out.println("==============================");
-       
+      
     }
 }
